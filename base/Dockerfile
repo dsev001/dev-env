@@ -59,17 +59,22 @@ RUN curl -fsSL -o /tmp/actionlint.tar.gz \
     && echo "${YQ_SHA256}  /usr/local/bin/yq" | sha256sum -c - \
     && chmod 0755 /usr/local/bin/yq
 
-# Codex as the static binary of a GitHub release, checked against the sha256 of that
-# release. New version: tag and sum together. Login happens in the workspace with
-# codex login --device-auth; the state lives in ~/.codex on the home volume.
+# Codex as the package of a GitHub release, checked against the sha256 of that release.
+# The bare binary does not start: it needs the package around it (codex-package.json,
+# exec server, rg, bwrap for the sandbox). The package goes to /opt/codex, not into the
+# home volume; the link finds it, as with the official install.sh. New version: tag and
+# sum together. Login happens in the workspace with codex login --device-auth; the
+# state lives in ~/.codex on the home volume.
 ARG CODEX_VERSION=0.167.0
-ARG CODEX_SHA256=9d64836106d5b374e90ee4454c7ebcde7ca7106558bd7e41a34b9f26ebda251a
+ARG CODEX_SHA256=3bbf75e83de6b58aed28f2cf6e33ad423ec31fd4700a1457b94be557ea5a7c6e
 RUN curl -fsSL -o /tmp/codex.tar.gz \
-        "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-x86_64-unknown-linux-musl.tar.gz" \
+        "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-package-x86_64-unknown-linux-musl.tar.gz" \
     && echo "${CODEX_SHA256}  /tmp/codex.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/codex.tar.gz -C /usr/local/bin codex-x86_64-unknown-linux-musl \
-    && mv /usr/local/bin/codex-x86_64-unknown-linux-musl /usr/local/bin/codex \
-    && rm /tmp/codex.tar.gz
+    && install -d -m 0755 /opt/codex \
+    && tar -xzf /tmp/codex.tar.gz -C /opt/codex --no-same-owner \
+    && ln -s /opt/codex/bin/codex /usr/local/bin/codex \
+    && rm /tmp/codex.tar.gz \
+    && codex --version
 
 # Coder runs the workspace as UID 1000 with the home /home/coder on a volume. Ubuntu
 # ships a user "ubuntu" with that UID; it goes, so the UID is free for coder.
