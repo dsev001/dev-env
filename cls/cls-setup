@@ -1,0 +1,19 @@
+#!/bin/sh
+# First start of a cls workspace: clones clsroot and runs its setup.sh, which clones
+# cls and doc-cls and makes the worktrees. The repositories are private, so this
+# needs gh logged in; without that it only says so. Runs at every start of the
+# workspace and does nothing when clsroot exists.
+set -eu
+root="$HOME/workspace/clsroot"
+if [ -d "$root" ]; then
+    echo "cls-setup: $root exists, nothing to do"
+    exit 0
+fi
+if ! gh auth status >/dev/null 2>&1; then
+    echo "cls-setup: not logged in; run 'gh auth login', then 'cls-setup'"
+    exit 0
+fi
+gh auth setup-git
+mkdir -p "$HOME/workspace"
+git clone https://github.com/dsev001/clsroot "$root"
+cd "$root" && sh setup.sh

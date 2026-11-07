@@ -5,6 +5,7 @@ Images für die Arbeitsplätze auf dem Coder-Server. Je Ordner ein Image; der Wo
 | Ordner | Image | Inhalt |
 |---|---|---|
 | `base/` | `ghcr.io/dsev001/dev-env-base` | Ubuntu 26.04; `git`, `gh`, Claude Code (apt, Kanal stable), Codex (Release-Binary); `tmux`, `make`, `vim`, `nano`; `ripgrep`, `fd`, `jq`, `yq`, `tree`, `htop`, `ncdu`; `curl`, `wget`, `rsync`, `openssh-client`, `dnsutils`, `netcat`; `python3` mit `venv` und `pip`, `sqlite3`, `shellcheck`, `actionlint`, `git-lfs`; Benutzer `coder` mit UID 1000 |
+| `cls/` | `ghcr.io/dsev001/dev-env-cls` | Basis plus JDK 25 (Temurin), Node 26.13.0, Pillow, `psql`, Skript `cls-setup` |
 
 Ein Projekt-Image setzt `FROM ghcr.io/dsev001/dev-env-base` davor und ergänzt seine Werkzeuge, zum Beispiel JDK und Node. Die Coder-Vorlage des Projekts nennt dann dieses Image.
 
@@ -24,5 +25,5 @@ Ein Projekt-Image setzt `FROM ghcr.io/dsev001/dev-env-base` davor und ergänzt s
 ## Projekt-Image hinzufügen
 
 1. Ordner `<projekt>/` mit `Dockerfile`, erste Zeile `FROM ghcr.io/dsev001/dev-env-base:latest`.
-2. Im Workflow einen Job nach `build` anlegen, der von ihm abhängt (`needs: build`) und den Ordner baut.
+2. Im Workflow einen Job wie `cls` anlegen: `needs: build`, Ordner als `context`, Image `dev-env-<projekt>`.
 3. Zeile in der Tabelle oben.
