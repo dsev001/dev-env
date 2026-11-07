@@ -6,11 +6,14 @@ FROM docker.io/library/ubuntu:26.04@sha256:6a06111c3b0a8600feadb270aec771dc239bf
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
 
-# Tools from Ubuntu, then gh from the apt repository of GitHub and Claude Code from the
-# apt repository of Anthropic (channel stable). The fingerprint check stops the build
-# when the key is not the one the Claude Code docs name. apt installs do not update
-# themselves: a new version comes with a new image. fd-find installs fdfind; the link
-# gives it the usual name.
+# Tools from Ubuntu, then gh from the apt repository of GitHub, Claude Code from the
+# apt repository of Anthropic (channel stable) and the Docker client from the apt
+# repository of Docker. The fingerprint checks stop the build when a key is not the one
+# the docs name. apt installs do not update themselves: a new version comes with a new
+# image. fd-find installs fdfind; the link gives it the usual name.
+# Docker: only client, buildx and compose; the daemon runs as a sidecar of the workspace
+# pod (DOCKER_HOST from the template). The link docker-compose serves Makefiles that
+# call compose as its own command.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash-completion bind9-dnsutils bzip2 ca-certificates curl fd-find file gettext-base git \
@@ -29,8 +32,15 @@ RUN apt-get update \
         | grep -q '^fpr:::::::::31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE:$' \
     && echo "deb [signed-by=/etc/apt/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/stable stable main" \
         > /etc/apt/sources.list.d/claude-code.list \
+    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
+    && gpg --show-keys --with-colons /etc/apt/keyrings/docker.asc \
+        | grep -q '^fpr:::::::::9DC858229FC7DD38854AE2D88D81803C0EBFCD88:$' \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu resolute stable" \
+        > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends gh claude-code \
+        docker-ce-cli docker-buildx-plugin docker-compose-plugin \
+    && ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose \
     && rm -rf /var/lib/apt/lists/*
 
 # actionlint and yq (mikefarah) as release binaries, checked against the sha256 sums the
