@@ -2,12 +2,12 @@
 # FROM ghcr.io/dsev001/dev-env-base in front and adds its own tools. There is no sudo:
 # every tool comes in through a Dockerfile, so a second user gets the same image.
 # The FROM names a tag and a digest; the digest decides. Change both together.
-FROM docker.io/library/ubuntu:26.04@sha256:6a06111c3b0a8600feadb270aec771dc239bf407b25625f93f44ab00e11f4d3c
+FROM docker.io/library/ubuntu:26.04@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
 
 # Tools from Ubuntu, then gh from the apt repository of GitHub, Claude Code from the
-# apt repository of Anthropic (channel stable) and the Docker client from the apt
+# apt repository of Anthropic (channel latest) and the Docker client from the apt
 # repository of Docker. The fingerprint checks stop the build when a key is not the one
 # the docs name. apt installs do not update themselves: a new version comes with a new
 # image. fd-find installs fdfind; the link gives it the usual name.
@@ -30,7 +30,7 @@ RUN apt-get update \
     && curl -fsSL https://downloads.claude.ai/keys/claude-code.asc -o /etc/apt/keyrings/claude-code.asc \
     && gpg --show-keys --with-colons /etc/apt/keyrings/claude-code.asc \
         | grep -q '^fpr:::::::::31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE:$' \
-    && echo "deb [signed-by=/etc/apt/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/stable stable main" \
+    && echo "deb [signed-by=/etc/apt/keyrings/claude-code.asc] https://downloads.claude.ai/claude-code/apt/latest latest main" \
         > /etc/apt/sources.list.d/claude-code.list \
     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
     && gpg --show-keys --with-colons /etc/apt/keyrings/docker.asc \
@@ -47,8 +47,8 @@ RUN apt-get update \
 # releases publish. New version: tag and sum together.
 ARG ACTIONLINT_VERSION=1.7.12
 ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-ARG YQ_VERSION=4.54.2
-ARG YQ_SHA256=44c7759059b4910827a0059a2757b22001e59360cdecdb2ef8dedc4b6c7e9f32
+ARG YQ_VERSION=4.54.3
+ARG YQ_SHA256=129534601871538efe0ba4c5e62a34fb1d5f469bcb975c4fddeb467d82974973
 RUN curl -fsSL -o /tmp/actionlint.tar.gz \
         "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
     && echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tar.gz" | sha256sum -c - \
@@ -65,8 +65,8 @@ RUN curl -fsSL -o /tmp/actionlint.tar.gz \
 # home volume; the link finds it, as with the official install.sh. New version: tag and
 # sum together. Login happens in the workspace with codex login --device-auth; the
 # state lives in ~/.codex on the home volume.
-ARG CODEX_VERSION=0.167.0
-ARG CODEX_SHA256=3bbf75e83de6b58aed28f2cf6e33ad423ec31fd4700a1457b94be557ea5a7c6e
+ARG CODEX_VERSION=0.169.0
+ARG CODEX_SHA256=3b8ed091149cc63a59046b9f094bcfa21cdb4dda15ede441ce369bcee4a71ba0
 RUN curl -fsSL -o /tmp/codex.tar.gz \
         "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-package-x86_64-unknown-linux-musl.tar.gz" \
     && echo "${CODEX_SHA256}  /tmp/codex.tar.gz" | sha256sum -c - \
