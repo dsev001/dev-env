@@ -1,6 +1,6 @@
 # dev-env
 
-Images für die Arbeitsplätze auf dem Coder-Server. Je Ordner ein Image; der Workflow baut sie bei jedem Push auf `main` und legt sie auf `ghcr.io` ab.
+Images für die Arbeitsplätze auf dem Coder-Server. Je Ordner ein Image; der Workflow baut sie bei jedem Push auf `main` und jeden Freitag um 05:00 UTC und legt sie auf `ghcr.io` ab.
 
 | Ordner | Image | Inhalt |
 |---|---|---|

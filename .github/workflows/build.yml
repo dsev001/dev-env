@@ -3,6 +3,9 @@ name: Build images
 
 on:
   workflow_dispatch:
+  # Fridays 05:00 UTC: apt packages without a pin (Claude Code, gh) come in without a push.
+  schedule:
+    - cron: '0 5 * * 5'
   push:
     branches:
       - main
