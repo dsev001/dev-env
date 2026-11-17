@@ -1,8 +1,9 @@
 # Base image of the workspaces: the tools every project needs. A project image puts
 # FROM ghcr.io/dsev001/dev-env-base in front and adds its own tools. There is no sudo:
 # every tool comes in through a Dockerfile, so a second user gets the same image.
-# The FROM names a tag and a digest; the digest decides. Change both together.
-FROM docker.io/library/ubuntu:26.04@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96
+# Each build takes the latest version of each tool; a version gets pinned only when it
+# causes trouble. The FROM follows the tag 26.04, the LTS line.
+FROM docker.io/library/ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
 
@@ -43,37 +44,38 @@ RUN apt-get update \
     && ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose \
     && rm -rf /var/lib/apt/lists/*
 
-# actionlint and yq (mikefarah) as release binaries, checked against the sha256 sums the
-# releases publish. New version: tag and sum together.
-ARG ACTIONLINT_VERSION=1.7.12
-ARG ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-ARG YQ_VERSION=4.54.3
-ARG YQ_SHA256=129534601871538efe0ba4c5e62a34fb1d5f469bcb975c4fddeb467d82974973
-RUN curl -fsSL -o /tmp/actionlint.tar.gz \
-        "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
-    && echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/actionlint.tar.gz -C /usr/local/bin actionlint \
-    && rm /tmp/actionlint.tar.gz \
-    && curl -fsSL -o /usr/local/bin/yq \
-        "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64" \
-    && echo "${YQ_SHA256}  /usr/local/bin/yq" | sha256sum -c - \
-    && chmod 0755 /usr/local/bin/yq
+# actionlint and yq (mikefarah) from their latest releases, checked against the sha256
+# sums the releases publish. actionlint has the version in the file name; the redirect
+# of releases/latest names it.
+RUN mkdir /tmp/dl && cd /tmp/dl \
+    && url=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/rhysd/actionlint/releases/latest) \
+    && v=${url##*/v} \
+    && base="https://github.com/rhysd/actionlint/releases/download/v${v}" \
+    && curl -fsSLO "${base}/actionlint_${v}_linux_amd64.tar.gz" \
+    && curl -fsSL "${base}/actionlint_${v}_checksums.txt" | grep " actionlint_${v}_linux_amd64.tar.gz\$" | sha256sum -c - \
+    && tar -xzf "actionlint_${v}_linux_amd64.tar.gz" -C /usr/local/bin actionlint \
+    && curl -fsSLO https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+    && curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/checksums-bsd \
+        | grep '^SHA256 (yq_linux_amd64) = ' | sha256sum -c - \
+    && install -m 0755 yq_linux_amd64 /usr/local/bin/yq \
+    && cd / && rm -rf /tmp/dl \
+    && actionlint -version && yq --version
 
-# Codex as the package of a GitHub release, checked against the sha256 of that release.
+# Codex as the package of the latest GitHub release, checked against the sha256 sums of
+# that release.
 # The bare binary does not start: it needs the package around it (codex-package.json,
 # exec server, rg, bwrap for the sandbox). The package goes to /opt/codex, not into the
-# home volume; the link finds it, as with the official install.sh. New version: tag and
-# sum together. Login happens in the workspace with codex login --device-auth; the
-# state lives in ~/.codex on the home volume.
-ARG CODEX_VERSION=0.169.0
-ARG CODEX_SHA256=3b8ed091149cc63a59046b9f094bcfa21cdb4dda15ede441ce369bcee4a71ba0
-RUN curl -fsSL -o /tmp/codex.tar.gz \
-        "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-package-x86_64-unknown-linux-musl.tar.gz" \
-    && echo "${CODEX_SHA256}  /tmp/codex.tar.gz" | sha256sum -c - \
+# home volume; the link finds it, as with the official install.sh. Login happens in the
+# workspace with codex login --device-auth; the state lives in ~/.codex on the home volume.
+RUN mkdir /tmp/dl && cd /tmp/dl \
+    && base=https://github.com/openai/codex/releases/latest/download \
+    && curl -fsSLO "${base}/codex-package-x86_64-unknown-linux-musl.tar.gz" \
+    && curl -fsSL "${base}/codex-package_SHA256SUMS" \
+        | grep ' codex-package-x86_64-unknown-linux-musl.tar.gz$' | sha256sum -c - \
     && install -d -m 0755 /opt/codex \
-    && tar -xzf /tmp/codex.tar.gz -C /opt/codex --no-same-owner \
+    && tar -xzf codex-package-x86_64-unknown-linux-musl.tar.gz -C /opt/codex --no-same-owner \
     && ln -s /opt/codex/bin/codex /usr/local/bin/codex \
-    && rm /tmp/codex.tar.gz \
+    && cd / && rm -rf /tmp/dl \
     && codex --version
 
 # Coder runs the workspace as UID 1000 with the home /home/coder on a volume. Ubuntu
