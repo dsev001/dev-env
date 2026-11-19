@@ -9,8 +9,13 @@ FROM ghcr.io/dsev001/dev-env-base:latest
 USER root
 
 # JDK and Node from their releases, checked against the sha256 sums that
-# install-toolchain.sh of dhome names.
-RUN mkdir -p /tmp/dl /opt/java/openjdk && cd /tmp/dl \
+# install-toolchain.sh of dhome names. The Node binary of nodejs.org needs libatomic1,
+# which Ubuntu does not bring along; the version calls stop the build when a library
+# is missing.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /tmp/dl /opt/java/openjdk && cd /tmp/dl \
     && curl -fsSLo jdk.tar.gz https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz \
     && echo "68982529869257d0ee6b824ec5aa270ff8b118bb438670da0b97ebdab178d7fb  jdk.tar.gz" | sha256sum -c - \
     && tar -xzf jdk.tar.gz -C /opt/java/openjdk --strip-components=1 \
@@ -18,7 +23,8 @@ RUN mkdir -p /tmp/dl /opt/java/openjdk && cd /tmp/dl \
     && echo "5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864  node.tar.xz" | sha256sum -c - \
     && tar -xJf node.tar.xz -C /usr/local --strip-components=1 \
         --exclude='*/CHANGELOG.md' --exclude='*/LICENSE' --exclude='*/README.md' \
-    && cd / && rm -rf /tmp/dl
+    && cd / && rm -rf /tmp/dl \
+    && /opt/java/openjdk/bin/java --version && node --version
 ENV JAVA_HOME=/opt/java/openjdk PATH=/opt/java/openjdk/bin:$PATH
 
 # npm and playwright-core from the npm registry; the sha512 sums are the integrity values
