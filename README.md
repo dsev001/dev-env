@@ -6,6 +6,7 @@ Images für die Arbeitsplätze auf dem Coder-Server. Je Ordner ein Image; der Wo
 |---|---|---|
 | `base/` | `ghcr.io/dsev001/dev-env-base` | Ubuntu 26.04; `git`, `gh`, Claude Code (apt, Kanal latest), Codex (Release-Paket in `/opt/codex`); `tmux`, `make`, `vim`, `nano`; `ripgrep`, `fd`, `jq`, `yq`, `tree`, `htop`, `ncdu`; `curl`, `wget`, `rsync`, `openssh-client`, `dnsutils`, `netcat`; `python3` mit `venv` und `pip`, `sqlite3`, `shellcheck`, `actionlint`, `git-lfs`; Docker-Client mit `buildx` und `compose` (apt von Docker, ohne Daemon; `docker-compose` als Link); Benutzer `coder` mit UID 1000 |
 | `java/` | `ghcr.io/dsev001/dev-env-java` | Basis plus JDK 25 (Temurin), Node 26 (neueste der Linie), Pillow (apt), `psql`, Playwright (latest) mit Chromium in `/opt/playwright`, Claude-Code-Plugins `codex` und `pixijs-skills` (Seed in `/opt/claude-seed`, eingeschaltet über `/etc/claude-code/managed-settings.json`), Skript `cls-setup` |
+| `dhome/` | `ghcr.io/dsev001/dev-env-dhome` | Basis plus die gepinnten Werkzeuge von dhome: JDK 25.0.5+8 (Temurin), Node 26.13.1, npm 12.2.3, Chromium für Playwright 1.65.1 in `/opt/playwright`; Claude-Code-Plugins `superpowers` und `mattpocock-skills` (Seed in `/opt/claude-seed`, eingeschaltet über `/etc/claude-code/managed-settings.json`) |
 
 Ein Projekt-Image setzt `FROM ghcr.io/dsev001/dev-env-base` davor und ergänzt seine Werkzeuge, zum Beispiel JDK und Node. Die Coder-Vorlage des Projekts nennt dann dieses Image.
 
@@ -13,6 +14,7 @@ Ein Projekt-Image setzt `FROM ghcr.io/dsev001/dev-env-base` davor und ergänzt s
 
 - Kein `sudo` im Image. Ein Werkzeug kommt über das Dockerfile, damit jeder Nutzer dasselbe Image hat.
 - Jeder Build nimmt die neueste Version. Gepinnt wird erst, wenn eine Version Probleme macht. Ein Pin nennt Version und Prüfsumme oder Tag und Digest; beim Wechsel beide zusammen ändern.
+  Ausnahme `dhome/`: Das Image pinnt die Versionen von dhome (`scripts/install-toolchain.sh`, `package.json` der Browser-Tests). Ändert dhome eine Version, zieht das Image mit.
 - Gebaut wird in GitHub Actions, nicht lokal. Das Paket auf `ghcr.io` muss öffentlich sein, damit der Cluster es ohne Anmeldung zieht: nach dem ersten Lauf unter „Packages“ prüfen.
 - Nichts Persönliches im Image: keine Anmeldungen, keine Schlüssel. Anmeldungen (`gh auth login`, `claude`) liegen im Home des Workspace, das ein Volume ist.
 
